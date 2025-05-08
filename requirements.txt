@@ -1,0 +1,15 @@
+python-dotenv>=0.21.0
+requests>=2.28.0
+newspaper3k>=0.2.8
+beautifulsoup4>=4.11.1
+lxml>=4.9.1
+lxml_html_clean>=0.1.4
+pymongo>=4.3.3
+dnspython>=2.3.0
+schedule
+
+# MongoDB Atlas SRV URI 지원
+pymongo
+
+# NewsAPI
+newsapi-python
