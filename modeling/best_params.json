@@ -1,0 +1,1 @@
+{"seq_len": 11, "hidden_dim": 32, "num_layers": 5, "dropout": 0.024087044399158375, "lr": 0.0013770269157084482, "nhead": 2, "batch_size": 16, "n_epochs": 12}
