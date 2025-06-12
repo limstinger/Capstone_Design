@@ -1,10 +1,11 @@
 import os
 import time
-import schedule
-import requests  
-from datetime import datetime
+import math
+import requests
+from datetime import datetime, timedelta
 from urllib.parse import quote
 from newspaper import Article, Config
+from bs4 import BeautifulSoup
 from pymongo import MongoClient, errors
 from dotenv import load_dotenv
 
@@ -15,67 +16,105 @@ CLIENT_SECRET = os.getenv("NAVER_CLIENT_SECRET")
 MONGO_URI     = os.getenv("MONGO_URI")
 
 if not CLIENT_ID or not CLIENT_SECRET:
-    raise RuntimeError("환경변수 NAVER_CLIENT_ID/SECRET 값을 확인하세요")
+    raise RuntimeError("NAVER_CLIENT_ID/SECRET 환경변수 필요")
 if not MONGO_URI:
-    raise RuntimeError("환경변수 MONGO_URI를 .env에 설정하세요")
+    raise RuntimeError("MONGO_URI 환경변수 필요")
 
-# ─── MongoDB 연결 & 컬렉션 준비 ────────────
+# ─── MongoDB 연결 ──────────────────────────
 client = MongoClient(MONGO_URI)
 db     = client["newsdb"]
 col    = db.articles
 col.create_index("url", unique=True)
 
-# ─── 수집할 키워드 목록 ─────────────────────
+# ─── 키워드 목록 ────────────────────────────
 KEYWORDS = [
-    "정치", "의료", "반도체", "2차 전지",
-    "금융정책", "주식", "환율", "국제무역", "로봇", "방산"
+    "LG", "KOSPI", "KOSDAQ"
 ]
 
-# ─── 총 수집건수 ───────────────────────────
-TOTAL_PER_RUN = 1000
-base = TOTAL_PER_RUN // len(KEYWORDS)
-remainder = TOTAL_PER_RUN % len(KEYWORDS)
+# KEYWORDS = ["금리", "완화","환율", "물가", "CPI", "GDP","연준", "일본은행","코스피", "코스닥", "반도체", "AI", "제약","바이오","삼성전자", "SK하이닉스", "현대차", "한화","전쟁", "무역전쟁", "금융", "경제"]
 
 # ─── newspaper3k 설정 ──────────────────────
 config = Config()
-config.request_timeout = 20  # 타임아웃 20초
+config.request_timeout = 20
 
-def fetch_meta(query: str, display: int):
+# ─── 수집 기간 설정 ─────────────────────────
+START_DATE = datetime(2023, 1, 1)
+END_DATE   = datetime(2024, 12, 31)
+
+# ─── API 호출 제한 설정 ────────────────────
+MAX_REQUESTS   = 25000
+request_count  = 0
+limit_exceeded = False
+
+# ─── 페이징 & 슬라이스 설정 ─────────────────
+PER_PAGE   = 100   # 한 페이지당 100건
+PAGES      = 10    # start=1,101,…,901 → 10페이지 → 최대 1,000건
+SLICES     = 10    # 기간을 10조각으로 분할 → 총 10×1,000건 = 10,000건
+
+slice_days = math.ceil((END_DATE - START_DATE).days / SLICES)
+
+def fetch_meta_page(query: str, start: int, display: int = PER_PAGE):
+    """네이버 뉴스 메타 수집(페이지 단위)"""
+    global request_count, limit_exceeded
+    if request_count >= MAX_REQUESTS:
+        limit_exceeded = True
+        return []
     url = (
         "https://openapi.naver.com/v1/search/news.json"
-        f"?query={quote(query)}&display={display}&sort=date"
+        f"?query={quote(query)}&display={display}&start={start}&sort=date"
     )
     headers = {
         "X-Naver-Client-Id":     CLIENT_ID,
         "X-Naver-Client-Secret": CLIENT_SECRET,
     }
-    r = requests.get(url, headers=headers)
-    r.raise_for_status()
-    return r.json().get("items", [])
+    try:
+        resp = requests.get(url, headers=headers, timeout=10)
+        if resp.status_code == 429:
+            limit_exceeded = True
+            print("🛑 HTTP 429: API 한도 초과")
+            return []
+        resp.raise_for_status()
+        request_count += 1
+        return resp.json().get("items", [])
+    except requests.exceptions.RequestException as e:
+        print("⚠️ fetch_meta_page 오류:", e)
+        return []
 
-def fetch_full_article(url: str, retries: int = 2):
-    art = Article(url, language="ko", config=config)
-    for attempt in range(1, retries+1):
+def fetch_headline(url: str, retries: int = 2):
+    """1) newspaper3k로 <title> 시도
+       2) 이상하면 BeautifulSoup <h1> fallback"""
+    for _ in range(retries):
         try:
+            art = Article(url, language="ko", config=config)
             art.download(); art.parse()
-            return art.text
+            title = art.title.strip()
+            # 사이트명만 나올 경우 예외 처리
+            if len(title) > 5 and "Capital Markets" not in title:
+                return title
         except Exception:
-            if attempt < retries:
-                time.sleep(2)
+            pass
+        time.sleep(1)
+    # fallback: <h1> 태그 추출
+    try:
+        resp = requests.get(url, timeout=10)
+        resp.raise_for_status()
+        soup = BeautifulSoup(resp.text, "lxml")
+        h1 = soup.find("h1")
+        if h1 and h1.get_text(strip=True):
+            return h1.get_text(strip=True)
+    except Exception:
+        pass
     return None
 
-def save_to_mongo(item, content, source_tag, lang):
+def save_to_mongo(item, headline, kw, adjusted_date):
     url = item.get("originallink") or item.get("link")
     doc = {
-        "source":      source_tag,
-        "language":    lang,
-        "title":       item.get("title"),
-        "description": item.get("description"),
-        "url":         url,
-        "urlToImage":  None,
-        "pubDate":     item.get("pubDate"),
-        "content":     content,
-        "fetchedAt":   datetime.utcnow().isoformat()
+        "source":       kw,
+        "url":          url,
+        "pubDate":      item.get("pubDate"),
+        "adjustedDate": adjusted_date.isoformat(),
+        "headline":     headline,
+        "fetchedAt":    datetime.utcnow().isoformat()
     }
     try:
         col.insert_one(doc)
@@ -83,49 +122,50 @@ def save_to_mongo(item, content, source_tag, lang):
     except errors.DuplicateKeyError:
         return False
 
-def run_naver_pipeline():
-    """2시간마다 호출될 네이버 뉴스 수집 파이프라인"""
-    print(f"[{datetime.now()}] >>> 네이버 뉴스 수집 시작 (총 {TOTAL_PER_RUN}건)")
+def run_news_collector():
+    global request_count, limit_exceeded
     total_saved = 0
-    total_dup   = 0
 
-    for i, kw in enumerate(KEYWORDS):
-        per_kw = base + (remainder if i == len(KEYWORDS)-1 else 0)
-        print(f"\n[{datetime.now()}] --- 키워드 `{kw}`: 목표 {per_kw}건 ---")
-        metas = fetch_meta(kw, per_kw)
-        print(f"[{datetime.now()}] ▶ 메타 가져옴: {len(metas)}건")
+    # 1) 날짜 범위를 SLICES개로 쪼갭니다
+    slices = []
+    for i in range(SLICES):
+        s = START_DATE + timedelta(days=i*slice_days)
+        e = s + timedelta(days=slice_days-1)
+        if e > END_DATE: e = END_DATE
+        slices.append((s.date(), e.date()))
 
+    # 2) 각 키워드마다 10,000건 시도
+    for kw in KEYWORDS:
+        if limit_exceeded: break
+        print(f"\n▶ 키워드 '{kw}' 최대 10,000건 수집 시작")
         saved = 0
-        dup   = 0
-        for idx, m in enumerate(metas, start=1):
-            print(f"[{datetime.now()}] [{kw} {idx}/{len(metas)}] 크롤링...", end=" ")
-            link = m.get("originallink") or m.get("link")
-            full = fetch_full_article(link)
-            if full:
-                print("성공 / 저장→", end=" ")
-                if save_to_mongo(m, full, source_tag=kw, lang="ko"):
-                    print("OK")
-                    saved += 1
-                else:
-                    print("중복")
-                    dup += 1
-            else:
-                print("⚠️ 실패(본문 없음)")
-            time.sleep(0.1)
+        for (sd, ed) in slices:
+            if limit_exceeded: break
+            date_filter = f"{sd}..{ed}"
+            query = f"{kw} {date_filter}"
+            for p in range(PAGES):
+                if limit_exceeded: break
+                start_idx = p * PER_PAGE + 1
+                items = fetch_meta_page(query, start_idx)
+                print(f"[{kw}] {sd}~{ed} 페이지 {p+1}/{PAGES} → {len(items)}건")
+                for item in items:
+                    try:
+                        pub_dt = datetime.strptime(
+                            item["pubDate"], "%a, %d %b %Y %H:%M:%S %z"
+                        )
+                    except Exception:
+                        continue
+                    market_close = pub_dt.replace(hour=15, minute=30, second=0)
+                    adjusted = (pub_dt + timedelta(days=1)).date() \
+                                if pub_dt > market_close else pub_dt.date()
+                    hl = fetch_headline(item.get("link"))
+                    if hl and save_to_mongo(item, hl, kw, adjusted):
+                        saved += 1
+                        total_saved += 1
+                time.sleep(1)
+        print(f"✔ 키워드 '{kw}' 저장 완료: {saved}건")
 
-        total_saved += saved
-        total_dup   += dup
-        print(f"[{datetime.now()}] --- `{kw}` 완료: 저장 {saved}건, 중복 {dup}건 ---")
+    print(f"\n✅ 전체 저장된 뉴스: {total_saved}건  (요청 횟수: {request_count})")
 
-    print(f"\n[{datetime.now()}] ✅ 전체 완료: 저장 {total_saved}건, 중복 {total_dup}건\n")
-
-# ─── 스케줄링 ──────────────────────────────
-schedule.every(2).hours.do(run_naver_pipeline)
-
-# 첫 실행
-run_naver_pipeline()
-
-# 백그라운드에서 계속 실행
-while True:
-    schedule.run_pending()
-    time.sleep(30)
+if __name__ == "__main__":
+    run_news_collector()
