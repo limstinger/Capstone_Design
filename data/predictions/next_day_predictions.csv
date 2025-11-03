@@ -1,0 +1,3 @@
+﻿asof_date,pred_for,proba_up_low,proba_up_high,proba_up,reject_margin,is_confident,pred_label,decision,model_dir,created_at,driver_side,driver_feature,driver_feature_raw,driver_feature_scaled
+2025-10-31,2025-11-03,0.616276324,0.520984888,0.568630606,0.059583595,TRUE,1,UP,C:\Users\mingy\vscode\Capstone_Design\models\final_wavelet_transformer_v9_band_gated_log_66a45c,2025-11-03 15:45,low,EUR_KRW,1646.5,14.68949152
+,,,,,,,,,,,,,,
