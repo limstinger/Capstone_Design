@@ -1,0 +1,12 @@
+{
+  "wavelet": "db4",
+  "wavelet_level": 5,
+  "energy_ratio_thresh": 0.6621239800380239,
+  "initial_train": 469,
+  "val_size": 252,
+  "seq_len": 120,
+  "cnn_hidden": 128,
+  "cnn_dropout": 0.16771233042590133,
+  "cnn_lr": 0.004328323329550196,
+  "reject_margin": 0.09648201275274781
+}

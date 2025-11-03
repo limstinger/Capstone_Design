@@ -1,0 +1,13 @@
+{
+  "initial_train": 448,
+  "val_size": 281,
+  "seq_len": 8,
+  "n_scales": 4,
+  "num_layers": 1,
+  "d_model_nhead_1daa4b_v2": "128x8",
+  "ffmult_1daa4b_v1": "x3",
+  "transf_dropout": 0.1161833207270131,
+  "transf_lr": 0.008858033533332046,
+  "transf_epochs": 42,
+  "reject_margin": 0.18666409518892754
+}
