@@ -15,7 +15,7 @@ st.title("📈 다음 날 주가 예측")
 st.caption("※ 내부 모델 예측값입니다. 실제 투자판단에는 참고용으로만 사용하세요.")
 
 # -------------------- 고정 경로 (요청 경로) --------------------
-PRED_CSV = Path(r"C:\Users\mingy\vscode\Capstone_Design\data\predictions\next_day_predictions.csv")
+PRED_CSV = Path("next_day_predictions.csv")
 
 # -------------------- 도우미 --------------------
 def _strip_bom_zwsp(s: str) -> str:
@@ -180,3 +180,4 @@ with st.expander("🧪 최근 10건 원본 보기"):
         "model_dir","created_at"
     ] if c in df.columns]
     st.dataframe(df.tail(10)[cols_show])
+
