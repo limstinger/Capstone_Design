@@ -11,5 +11,8 @@ schedule
 # MongoDB Atlas SRV URI 지원
 pymongo
 
-# NewsAPI
-newsapi-python
+
+streamlit>=1.36
+pandas
+numpy
+altair>=5
