@@ -1,6 +1,6 @@
 # streamlit_app.py
 # -*- coding: utf-8 -*-
-import re, math
+import os, re, math
 from pathlib import Path
 
 import numpy as np
@@ -14,19 +14,15 @@ st.set_page_config(page_title="📈 다음 날 예측", layout="centered")
 st.title("📈 다음 날 주가 예측")
 st.caption("※ 내부 모델 예측값입니다. 실제 투자판단에는 참고용으로만 사용하세요.")
 
-# -------------------- 고정 경로 (요청 경로) --------------------
-PRED_CSV = Path("next_day_predictions.csv")
-
-# -------------------- 도우미 --------------------
+# -------------------- 유틸 --------------------
 def _strip_bom_zwsp(s: str) -> str:
-    return re.sub(r"[\u200b\ufeff]", "", s).strip()
+    return re.sub(r"[\u200b\ufeff]", "", str(s)).strip()
 
 def safe_parse_ts(x):
     """문자/NaN 안전 파싱 (YYYY-MM-DD 같은 일반 문자열 우선)"""
     if x is None or x == "" or (isinstance(x, float) and math.isnan(x)):
         return pd.NaT
-    s = str(x).strip()
-    s = _strip_bom_zwsp(s)
+    s = _strip_bom_zwsp(x)
     return pd.to_datetime(s, errors="coerce")
 
 def feature_to_category(feat: str) -> str:
@@ -47,6 +43,53 @@ def feature_to_category(feat: str) -> str:
             return cat
     return "기타"
 
+# -------------------- 경로 해결 --------------------
+def resolve_pred_csv() -> Path | None:
+    """
+    Streamlit Cloud에서 파일을 찾는 순서:
+    1) ENV: PRED_CSV
+    2) 앱 파일 옆(models/pipeline/next_day_predictions.csv)
+    3) repo 루트의 data/predictions/next_day_predictions.csv
+    4) CWD 기준 data/predictions/next_day_predictions.csv
+    (없으면 None 반환)
+    """
+    env = os.getenv("PRED_CSV", "").strip()
+    if env:
+        p = Path(env)
+        if p.exists():
+            return p
+
+    here = Path(__file__).resolve()
+    candidates = [
+        here.parent / "next_day_predictions.csv",
+        here.parents[2] / "data" / "predictions" / "next_day_predictions.csv",
+        Path("data/predictions/next_day_predictions.csv"),  # CWD 대비
+    ]
+    for p in candidates:
+        if p.exists():
+            return p
+    return None
+
+@st.cache_data(show_spinner=False)
+def load_predictions_df() -> pd.DataFrame:
+    # 1) 리포 내 파일 우선
+    p = resolve_pred_csv()
+    if p is not None:
+        try:
+            return pd.read_csv(p, dtype=str, encoding="utf-8-sig", encoding_errors="ignore")
+        except Exception as e:
+            st.warning(f"로컬 CSV 읽기 실패: {e}")
+
+    # 2) 원격 URL (Secrets)
+    url = st.secrets.get("PRED_CSV_URL")
+    if url:
+        try:
+            return pd.read_csv(url, dtype=str)
+        except Exception as e:
+            st.error(f"원격 CSV 읽기 실패: {e}")
+
+    return pd.DataFrame()
+
 # -------------------- 상단 버튼: 새로고침 (좌측, 한 줄 고정) --------------------
 st.markdown("""
     <style>
@@ -60,25 +103,37 @@ with col_btn:
         st.rerun()
 
 # -------------------- 데이터 로드 --------------------
-st.caption(f"읽는 CSV: `{PRED_CSV}`")
-if not PRED_CSV.exists():
-    st.warning("⚠ 예측 결과 파일이 아직 없습니다. 야간 파이프라인 실행 후 ‘새로고침’을 눌러 주세요.")
+df_raw = load_predictions_df()
+
+# 경로/원천 표시
+p = resolve_pred_csv()
+if p is not None and p.exists():
+    st.caption(f"읽는 CSV: `{p}`")
+else:
+    src = st.secrets.get("PRED_CSV_URL")
+    st.caption(f"읽는 CSV: `{src or '찾을 수 없음'}`")
+
+if df_raw.empty:
+    st.warning("⚠ 예측 결과 파일이 없습니다.\n"
+               "리포에 `data/predictions/next_day_predictions.csv` 또는 "
+               "`models/pipeline/next_day_predictions.csv`를 넣거나, "
+               "App Secrets에 `PRED_CSV_URL`을 설정하세요.")
     st.stop()
 
-raw = pd.read_csv(PRED_CSV, dtype=str, encoding="utf-8-sig", encoding_errors="ignore")
-raw.columns = [_strip_bom_zwsp(c).lower() for c in raw.columns]
-for c in raw.columns:
-    if raw[c].dtype == object:
-        raw[c] = raw[c].astype(str).map(_strip_bom_zwsp)
+# 전처리(헤더/문자열 정리)
+df_raw.columns = [_strip_bom_zwsp(c).lower() for c in df_raw.columns]
+for c in df_raw.columns:
+    if df_raw[c].dtype == object:
+        df_raw[c] = df_raw[c].astype(str).map(_strip_bom_zwsp)
 
 with st.expander("🧪 CSV 진단"):
-    st.write("헤더:", list(raw.columns))
-    st.write("앞부분:", raw.head(5))
-    st.write("열별 결측수:", raw.replace({"": np.nan}).isna().sum())
+    st.write("헤더:", list(df_raw.columns))
+    st.write("앞부분:", df_raw.head(5))
+    st.write("열별 결측수:", df_raw.replace({"": np.nan}).isna().sum())
 
-df = raw.copy()
+df = df_raw.copy()
 
-# 필수 컬럼
+# 필수 컬럼 확인
 required = ["asof_date", "pred_for"]
 miss = [c for c in required if c not in df.columns]
 if miss:
@@ -151,7 +206,7 @@ if driver_feat:
     st.success(f"**{cat}** {side_txt} · {driver_feat}", icon="📂")
 
 # -------------------- 히스토리 시각화 --------------------
-if len(df) > 1:
+if len(df) > 1 and "proba_up" in df.columns:
     st.markdown("### 📈 최근 예측 추세")
     plot = df.tail(60).copy()
     plot["upper_band"] = 0.5 + plot["reject_margin"].fillna(0)
@@ -180,4 +235,3 @@ with st.expander("🧪 최근 10건 원본 보기"):
         "model_dir","created_at"
     ] if c in df.columns]
     st.dataframe(df.tail(10)[cols_show])
-
