@@ -5,9 +5,7 @@
 
 * `Python 3.9 권장`
 
-* GPU 사용 시:
-
-`NVIDIA GPU + CUDA 11.x 또는 12.x`
+* GPU 사용 시: `NVIDIA GPU + CUDA 11.x 또는 12.x`
 
 * PyTorch CUDA 빌드 필요
 
