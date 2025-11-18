@@ -1,18 +1,52 @@
-python-dotenv>=0.21.0
-requests>=2.28.0
-newspaper3k>=0.2.8
-beautifulsoup4>=4.11.1
-lxml>=4.9.1
-lxml_html_clean>=0.1.4
-pymongo>=4.3.3
-dnspython>=2.3.0
+# ---- 기본 Python 패키지 ----
+numpy
+pandas
+python-dateutil
+matplotlib
+seaborn
+scikit-learn
+
+# ---- 웹 수집 / 크롤링 ----
+requests
+beautifulsoup4
+lxml
+lxml_html_clean
+newspaper3k
+selenium
+undetected-chromedriver
+
+# ---- 금융 데이터 ----
+yfinance
+pykrx
+exchange-calendars
+
+# ---- 환경 변수 ----
+python-dotenv
+
+# ---- 모델 학습/추론 ----
+torch
+joblib
+numba
+numba.cuda
+scipy
+
+# ---- 시계열 분석 / NLP ----
+gensim
+bertopic
+sentence-transformers
+
+# ---- 데이터 레이크 / 저장 ----
+duckdb
+pyarrow
+fastparquet
+
+# ---- Streamlit UI ----
+streamlit
+altair
+streamlit-autorefresh
+
+# ---- 스케줄링 ----
 schedule
 
-# MongoDB Atlas SRV URI 지원
-pymongo
-
-
-streamlit>=1.36
-pandas
-numpy
-altair>=5
+# ---- 기타 유틸 ----
+tqdm
