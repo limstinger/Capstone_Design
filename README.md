@@ -1,13 +1,13 @@
-✅ 1. 운영환경(Environment) 정리
+*✅ 1. 운영환경(Environment) 정리*
 ■ OS 및 실행 환경
 
-Windows 10/11 또는 Linux(Ubuntu 20.04 이상)
+`Windows 10/11 또는 Linux(Ubuntu 20.04 이상)`
 
-Python 3.9 ~ 3.11 권장
+`Python 3.9 권장`
 
 GPU 사용 시:
 
-NVIDIA GPU + CUDA 11.x 또는 12.x
+`NVIDIA GPU + CUDA 11.x 또는 12.x`
 
 PyTorch CUDA 빌드 필요
 
@@ -15,7 +15,7 @@ PyTorch CUDA 빌드 필요
 
 Chrome 브라우저
 
-ChromeDriver (selenium 자동 제어)
+`ChromeDriver (selenium 자동 제어)`
 
 DuckDB 데이터베이스(파일 기반, 설치 불필요)
 
