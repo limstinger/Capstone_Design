@@ -1,4 +1,4 @@
-# ✅ 1. 운영환경(Environment) 정리
+# ✅ 1. 운영환경(Environment)
 ■ OS 및 실행 환경
 
 * `Windows 10/11 또는 Linux(Ubuntu 20.04 이상)`
