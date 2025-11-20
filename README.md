@@ -76,8 +76,10 @@ Capstone_Design/
 * BERTopic 기반 키워드/토픽 추출
 
  🔹 (3) 통합 전처리(Feature Engineering) -> ``python models/pipeline/preprocess.py``<br>
-
+* 경제지표·뉴스·시장 데이터를 모두 하나의 학습용 테이블로 통합하는 단계
 
  🔹 (4) 다음 영업일 예측 -> ``python models/pipeline/predict_next_day.py``<br>
-
+* 최신 Transformer + CNN 모델을 불러와 다음 영업일 상승/하락 확률을 예측
+  
  🔹 (5) 예측 확인(시각화) -> ``streamlit run models/pipeline/streamlit_app.py``<br>
+ * Streamlit 대시보드를 통해 모델 예측 결과, 확률, Driver Feature, 과거 기록을 시각적으로 확인
