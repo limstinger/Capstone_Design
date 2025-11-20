@@ -54,7 +54,7 @@ Capstone_Design/
 
 
 ## ⚙ 5. 실행 순서(전체 파이프라인) : run_pipeline.py
-### 🔹 (1) 경제 지표 수집 -> ``python models/pipeline/economic_indicators.py``<br>
+ 🔹 (1) 경제 지표 수집 -> ``python models/pipeline/economic_indicators.py``<br>
 
 
 * 환율(USD/KRW 등)
@@ -65,8 +65,7 @@ Capstone_Design/
 
 * 한국은행 기준금리 등
 
-### 🔹 (2) 뉴스 데이터 수집 + 감성 분석 -> ``python models/pipeline/news_indicators.py`` <br>
----
+ 🔹 (2) 뉴스 데이터 수집 + 감성 분석 -> ``python models/pipeline/news_indicators.py`` <br>
 
 * 네이버 뉴스 크롤링
 
@@ -76,9 +75,9 @@ Capstone_Design/
 
 * BERTopic 기반 키워드/토픽 추출
 
-### 🔹 (3) 통합 전처리(Feature Engineering) -> ``python models/pipeline/preprocess.py``<br>
+ 🔹 (3) 통합 전처리(Feature Engineering) -> ``python models/pipeline/preprocess.py``<br>
 
 
-### 🔹 (4) 다음 영업일 예측 -> ``python models/pipeline/predict_next_day.py``<br>
+ 🔹 (4) 다음 영업일 예측 -> ``python models/pipeline/predict_next_day.py``<br>
 
-### 🔹 (5) 예측 확인(시각화) -> ``streamlit run models/pipeline/streamlit_app.py``<br>
+ 🔹 (5) 예측 확인(시각화) -> ``streamlit run models/pipeline/streamlit_app.py``<br>
