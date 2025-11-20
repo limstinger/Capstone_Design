@@ -24,7 +24,7 @@
 
 📂 2. 프로젝트 구조(Directory Structure)
 
-``
+```
 Capstone_Design/
  ├─ models/
  │   └─ pipeline/
@@ -47,7 +47,7 @@ Capstone_Design/
  └─ data_analyze/
      └─ economic_indicator/
          krw_fed_rate_announcements.csv
-``
+```
 🔐 3. .env 설정
 * ECOS_KEY=한국은행_API_KEY
 * EIA_KEY=EIA_API_KEY
