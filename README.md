@@ -53,7 +53,7 @@ Capstone_Design/
 ## 📦 4. 필수 라이브러리 (requirements.txt)
 
 
-## ⚙ 5. 실행 순서(전체 파이프라인)
+## ⚙ 5. 실행 순서(전체 파이프라인) : run_pipeline.py
 ### 🔹 (1) 경제 지표 수집 -> python models/pipeline/economic_indicators.py
 
 
