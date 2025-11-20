@@ -44,9 +44,7 @@ Capstone_Design/
  │   └─ predictions/
  │       └─ next_day_predictions.csv     # 예측 결과 (누적)
  │
- └─ data_analyze/
-     └─ economic_indicator/
-         krw_fed_rate_announcements.csv
+
 ```
 🔐 3. .env 설정
 * ECOS_KEY=한국은행_API_KEY
