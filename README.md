@@ -66,7 +66,7 @@ Capstone_Design/
 * 한국은행 기준금리 등
 
 ### 🔹 (2) 뉴스 데이터 수집 + 감성 분석 -> ``python models/pipeline/news_indicators.py`` <br>
-
+---
 
 * 네이버 뉴스 크롤링
 
