@@ -22,7 +22,7 @@
 * 네이버 뉴스 페이지 접근 가능해야 함
 
 
-📂 2. 프로젝트 구조(Directory Structure)
+## 📂 2. 프로젝트 구조(Directory Structure)
 
 ```
 Capstone_Design/
@@ -46,14 +46,14 @@ Capstone_Design/
  │
 
 ```
-🔐 3. .env 설정
+## 🔐 3. .env 설정
 * ECOS_KEY=한국은행_API_KEY
 * EIA_KEY=EIA_API_KEY
 
-📦 4. 필수 라이브러리 (requirements.txt)
+## 📦 4. 필수 라이브러리 (requirements.txt)
 
 
-⚙ 5. 실행 순서(전체 파이프라인)
+## ⚙ 5. 실행 순서(전체 파이프라인)
 🔹 (1) 경제 지표 수집
 python models/pipeline/economic_indicators.py
 
