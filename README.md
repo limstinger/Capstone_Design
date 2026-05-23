@@ -67,7 +67,7 @@ Capstone_Design/
 
  🔹 (2) 뉴스 데이터 수집 + 감성 분석 -> ``python models/pipeline/news_indicators.py`` <br>
 
-* 네이버 뉴스 크롤링
+* 네이버 뉴스 스크랩핑
 
 * 본문/헤드라인 정제
 
